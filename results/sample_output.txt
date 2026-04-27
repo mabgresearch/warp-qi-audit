@@ -1,0 +1,235 @@
+╔════════════════════════════════════════════════════════════════╗
+║  PART 1: testfisico.py – Quantum Inequality Analysis          ║
+╚════════════════════════════════════════════════════════════════╝
+
+QI energy density bound = -6.432e-26 J/m³
+Bubble wall volume ≈ 29.56 m³
+Total allowed negative energy ≈ 1.902e-24 J
+Effective negative mass (vacuum displacement) ≈ 2.116e-41 kg
+Negative mass fraction = 2.116e-46 ("part per million")
+Negative mass required for 100-tonne ship: 2.116e-41 kg
+Characteristic photon wavelength = 1.663e-02 m
+Atomic Fermi wavelength ≈ 8.482e-06 m
+Negative mass particles needed: 1 (approx)
+Saved qi_vs_Delta.png
+Saved qi_vs_Radius.png
+Required total negative energy ≈ -2.292e+45 J
+Required negative energy density ≈ -7.752e+43 J/m³
+
+╔══════════════════════════════════════════════════════════╗
+║  HYPOTHETICAL: Δ needed to close gap  (UNPHYSICAL)      ║
+╚══════════════════════════════════════════════════════════╝
+  If we set QI-allowed |E| = warp-required |E| and solve
+  for the wall thickness Δ, we get:
+
+    Δ_hypothetical ≈ 1.403e-18 m
+    |E|_required   ≈ 2.292e+45 J
+    m_vac          ≈ 2.550e+28 kg
+    N_particles    ≈ 27,992,797,486,601,567,068,756,124,441,095,990,474,083,484,888,147,848,855,552
+    m_vac / m_ship = 2.550e+23
+
+  ⚠  Δ ≈ 1e-18 m is ~1000× smaller than a proton.
+     At this scale the continuum QFT derivation of the QI
+     breaks down and quantum-gravity effects dominate.
+     This is NOT a viable 'fix'; it is an illustration of
+     why the energy gap cannot be closed within known physics.
+
+[Phase-space volumes – illustrative]
+  Φ_ship = (Δ·m·v_s)³ = 6.406e+38 m³·(kg·m/s)³
+  Φ_QI   = (Δ·m_vac·v_s)³ = 1.062e+109 m³·(kg·m/s)³
+  Ratio Φ_QI/Φ_ship ≈ 1.7e+70
+
+[Subluminal comparison at v = 0.99c]
+  Gamma        = 7.09
+  p_ship (SR)  = 2.104e+14 kg·m/s
+Saved qi_vs_Radius_with_SHIP.png
+Saved phase_space_ship_vs_qi.png
+Saved qi_vs_Radius_with_SHIP.png
+Saved phase_space_ship_vs_qi.png
+
+=================================================================
+  WARP METRIC EXPLORER – Comparative Analysis
+=================================================================
+  Parameters:
+    v_s   = 1.10 c
+    R     = 3.0 m
+    Δ     = 0.2614 m  (σ = 3.8 m⁻¹)
+
+  Metric                    Peak ρ [J/m³]        E_total [J]     Sign
+  -------------------- ------------------ ------------------ --------
+  Alcubierre 1994              -1.776e+42         -7.019e+43      NEG
+  White-Natário                -5.258e+41         -3.924e+43      NEG
+  Lentz 2021                    4.210e+42          2.254e+44      POS
+
+  QI Cap (Ford-Roman, τ₀=Δ/c) : 1.902e-24 J
+  Alcubierre negative total    : 7.019e+43 J
+  QI gap factor                : 3.7e+67
+
+  White-Natário / Alcubierre peak: 0.30×
+  → Thicker wall reduces peak by 70%,
+    but total negative energy remains comparable.
+
+  Lentz soliton energy         : 2.254e+44 J
+  Solar mass-energy            : 1.787e+47 J
+  Lentz in solar masses        : 0.0013 M_☉
+  Equivalent Earth masses      : 420 M_⊕
+  Sun luminous output (1 yr)   : 1.208e+34 J
+  Lentz / solar annual output  : 1.9e+10  (18.7 billion Sun-years)
+
+  CONCLUSION:
+  • Alcubierre & White-Natário require NEGATIVE energy
+    (violates all known energy conditions).
+    The QI (Ford-Roman) bound is exceeded by ~68 orders
+    of magnitude — not a marginal shortfall but a
+    fundamental prohibition.
+  • Lentz avoids negative energy but demands enormous
+    POSITIVE energy (0.0013 M_☉ ≈ 420 Earth masses).
+  • No known metric closes the feasibility gap within
+    current physics.
+
+  (*) Lentz peak ρ from algebraic estimate of the ADM
+      extrinsic-curvature invariant, not a full numerical
+      integration of the Lentz stress-energy tensor.
+      See metric_explorer.py for derivation.
+=================================================================
+Saved metric_comparison.png
+
+============================================================
+  QUANTUM INEQUALITY AUDIT
+============================================================
+  Bubble wall thickness  Δ  = 0.2614 m
+  Torus radius           R  = 3.0 m
+  Ship speed             v_s = 1.1 c
+
+  QI allowed energy density  : -6.432e-26 J/m³
+  Total QI-allowed energy    : 1.902e-24 J
+
+  Warp required energy density: -7.752e+43 J/m³
+  Warp required total energy  : -2.292e+45 J
+
+  GAP (density) : 1.2e+69
+  GAP (total)   : 1.2e+69
+
+  CONCLUSION: The required negative energy exceeds the
+  quantum inequality bound by ~69 orders of magnitude.
+  Within known QFT, such a warp bubble is physically
+  impossible.
+============================================================
+
+
+╔════════════════════════════════════════════════════════════════╗
+║  PART 2: Lentz Soliton Speed Sweep                           ║
+╚════════════════════════════════════════════════════════════════╝
+
+  Parameters: R = 3.0 m, Delta = 0.2614 m
+  Energy threshold: 1e+20 J  (mass-energy of ~1112.7 kg)
+
+     v_s/c       v_s [m/s]   Peak rho [J/m3]       E_total [J]     E [M_sun]   E [M_earth]         Sun-yrs     < threshold
+  ----------------------------------------------------------------------------------------------------------------------
+    0.9900    2.967945e+08         3.410e+42         1.826e+44    1.0218e-03         340.2         1.5e+10              NO
+    0.9000    2.698132e+08         2.818e+42         1.509e+44    8.4450e-04         281.2         1.2e+10              NO
+    0.5000    1.498962e+08         8.698e+41         4.658e+43    2.6065e-04          86.8         3.9e+09              NO
+    0.1000    2.997925e+07         3.479e+40         1.863e+42    1.0426e-05           3.5         1.5e+08              NO
+    0.0100    2.997925e+06         3.479e+38         1.863e+40    1.0426e-07           0.0         1.5e+06              NO
+  ----------------------------------------------------------------------------------------------------------------------
+
+  Searching for v_s where E_Lentz = 1e+20 J ...
+
+  +-----------------------------------------------------------+
+  |  THRESHOLD CROSSING RESULT                                |
+  +-----------------------------------------------------------+
+  |  E_threshold       = 1e+20 J
+  |  (mass-energy of   ~ 1112.7 kg)
+  |
+  |  v_crossover       = 1.000004e-10 c
+  |                    = 2.997938e-02 m/s
+  |                    = 0.00 km/s
+  |
+  |  E_Lentz at cross  = 1.863e+24 J
+  +-----------------------------------------------------------+
+
+  For context:
+    Voyager 1 speed          : ~1.7e4 m/s  (5.67e-05 c)
+    Parker Solar Probe (max) : ~1.9e5 m/s  (6.34e-04 c)
+    0.01c                    : 3.00e+06 m/s
+    Crossover speed          : 3.00e-02 m/s  (1.00e-10 c)
+
+  WARNING: The crossover speed (1.00e-10 c) is deeply subluminal.
+     At such speeds the warp metric degenerates into a
+     trivial perturbation of flat spacetime -- the 'bubble'
+     provides no practical advantage over conventional
+     propulsion.  The Lentz soliton is NOT a viable
+     propulsion mechanism at any useful speed.
+
+
+=================================================================
+  PART 3: Full Metric Comparison at v_s = 0.01c
+=================================================================
+
+=================================================================
+  WARP METRIC EXPLORER – Comparative Analysis
+=================================================================
+  Parameters:
+    v_s   = 0.01 c
+    R     = 3.0 m
+    Δ     = 0.2614 m  (σ = 3.8 m⁻¹)
+
+  Metric                    Peak ρ [J/m³]        E_total [J]     Sign
+  -------------------- ------------------ ------------------ --------
+  Alcubierre 1994              -1.468e+38         -5.801e+39      NEG
+  White-Natário                -4.346e+37         -3.243e+39      NEG
+  Lentz 2021                    3.479e+38          1.863e+40      POS
+
+  QI Cap (Ford-Roman, τ₀=Δ/c) : 1.902e-24 J
+  Alcubierre negative total    : 5.801e+39 J
+  QI gap factor                : 3.1e+63
+
+  White-Natário / Alcubierre peak: 0.30×
+  → Thicker wall reduces peak by 70%,
+    but total negative energy remains comparable.
+
+  Lentz soliton energy         : 1.863e+40 J
+  Solar mass-energy            : 1.787e+47 J
+  Lentz in solar masses        : 0.0000 M_☉
+  Equivalent Earth masses      : 0 M_⊕
+  Sun luminous output (1 yr)   : 1.208e+34 J
+  Lentz / solar annual output  : 1.5e+06  (0.0 billion Sun-years)
+
+  CONCLUSION:
+  • Alcubierre & White-Natário require NEGATIVE energy
+    (violates all known energy conditions).
+    The QI (Ford-Roman) bound is exceeded by ~63 orders
+    of magnitude — not a marginal shortfall but a
+    fundamental prohibition.
+  • Lentz avoids negative energy but demands enormous
+    POSITIVE energy (0.0000 M_☉ ≈ 0 Earth masses).
+  • No known metric closes the feasibility gap within
+    current physics.
+
+  (*) Lentz peak ρ from algebraic estimate of the ADM
+      extrinsic-curvature invariant, not a full numerical
+      integration of the Lentz stress-energy tensor.
+      See metric_explorer.py for derivation.
+=================================================================
+
+
+=================================================================
+  FINAL VERDICT
+=================================================================
+
+  We swept the Lentz positive-energy soliton from v_s = 0.99c
+  down to v_s = 0.01c.  The total energy scales as v_s^2, so
+  reducing speed helps -- but the crossover into the "small
+  asteroid" energy regime (1e+20 J) occurs at:
+
+      v_crossover = 1.00e-10 c  =  3.00e-02 m/s
+
+  At this speed the metric perturbation is negligible and offers
+  no advantage over conventional propulsion.
+
+  BOTTOM LINE: No known warp metric -- whether Alcubierre
+  (negative energy), White-Natario (reduced peak), or Lentz
+  (positive energy) -- is physically feasible at any useful speed
+  within current physics.
+
+=================================================================
