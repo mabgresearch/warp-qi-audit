@@ -77,7 +77,7 @@ warp-qi-audit/
 ## Installation
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/warp-qi-audit.git
+git clone https://github.com/mabgresearch/warp-qi-audit.git
 cd warp-qi-audit
 pip install -r requirements.txt
 ```
