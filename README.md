@@ -1,6 +1,6 @@
 # Warp Drive QI Audit
 
-**An open-source quantum-inequality audit of Alcubierre, White-Natário, and Lentz warp metrics**
+**An open-source quantum-inequality audit of Alcubierre, White-Natário, and Lentz warp metrics** 10.5281/zenodo.19829970
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/)
