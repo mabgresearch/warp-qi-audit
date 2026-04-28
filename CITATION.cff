@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: "Bravo González"
+    given-names: "Mauricio Alejandro"
+title: "warp-qi-audit: A Python toolkit for auditing warp drive metrics with quantum inequalities"
+version: 1.0.0
+doi: 10.5281/zenodo.19862376
+date-released: 2026-04-28
+url: "https://github.com/mabgresearch/warp-qi-audit"
+repository-code: "https://github.com/mabgresearch/warp-qi-audit"
