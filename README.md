@@ -2,7 +2,7 @@
 
 This repository houses two distinct, high-performance physics simulations related to advanced propulsion concepts:
 1. **Toroidal PIC Simulation**: A Particle-in-Cell simulation of Xe⁺ ions in a toroidal magnetic field.
-2. **Warp Drive QI Audit**: A numerical evaluation of the physical feasibility of Alcubierre, White-Natário, and Lentz warp metrics.
+2. **Warp Drive QI Audit**: A numerical evaluation of the physical feasibility of Alcubierre, White-Natário, Lentz, and **Rodal (2025)** warp metrics.
 
 ---
 
@@ -51,6 +51,7 @@ An open-source quantum-inequality audit of Alcubierre, White-Natário, and Lentz
 | **Alcubierre (1994)** | Negative (exotic) | Exceeds QI by ~68–69 orders of magnitude |
 | **White-Natário** | Negative (exotic) | Peak reduced 70%, total comparable to Alcubierre |
 | **Lentz (2021)** | Positive | ~420 Earth masses at 1.1c; collapses to noise at useful speeds |
+| **Rodal (2025)** | Predominantly positive, net ≈ 0 | Peak deficit reduced ~38× vs. Alcubierre; global Type I; QI exceeded by ∼63 orders of magnitude |
 
 **Bottom line:** No known warp metric is physically feasible within current physics. This repository makes the math explicit and reproducible.
 
@@ -68,6 +69,7 @@ This produces:
 - `qi_vs_Radius.png` — QI energy vs bubble radius
 - `qi_vs_Radius_with_SHIP.png` — QI limit vs ship requirement
 - `metric_comparison.png` — Four-panel metric comparison
+- `rodal_energy_map.png` — 2-D polar map of Rodal proper energy density
 
 ### Run the metric explorer standalone
 
@@ -78,6 +80,7 @@ run_metric_comparison(
     v_s   = 1.1 * 2.99792458e8,   # 1.1c in m/s
     R     = 3.0,                   # bubble radius [m]
     Delta = 0.2614,                # wall thickness [m]
+    include_rodal=True             # enable Rodal metric analysis
 )
 ```
 
@@ -89,6 +92,7 @@ pytest test_physics.py
 
 ### Caveats and Scope
 - **Lentz Metric:** The Lentz energy density uses an algebraic ADM estimate. Lentz 2021 required a full Einstein-Maxwell-plasma coupling to get T₀₀ ≥ 0 — you can't reproduce that with the same scalar shift-vector formula just flipping a sign. The ~420 Earth masses figure is indicative at best.
+- **Rodal Metric:** The proper energy density is computed from the spatial Hessian of the scalar potential Φ(r,θ). The QI gap for Rodal uses the actual diffuse negative-energy volume V₋ rather than a thin-shell model, giving a conservative estimate.
 - **QI Bound:** The QI bound applied here is the Ford-Roman (1995) flat-spacetime result; curved-spacetime corrections exist but do not change the order-of-magnitude gap.
 - **E_req_total:** The total energy requirement is a dimensional order-of-magnitude estimate from Alcubierre's original paper, not a precision numerical ADM result.
 
