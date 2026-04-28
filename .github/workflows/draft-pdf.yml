@@ -1,0 +1,19 @@
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  paper:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: openjournals/draft-paper@v1
+        with:
+          journal: joss
+          paper-path: paper.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: paper
+          path: paper.pdf
