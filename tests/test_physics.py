@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 from metric_explorer import (
     f_alcubierre,
-    f_white_natario,
+    f_white_modified,
     f_lentz_soliton,
     rho_from_shaping,
     total_energy

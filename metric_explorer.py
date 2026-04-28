@@ -58,16 +58,10 @@ def f_alcubierre(r_s, R, sigma):
     return (np.tanh(sigma*(r_s + R)) - np.tanh(sigma*(r_s - R))) / norm
 
 
-def f_white_natario(r_s, R, sigma):
+def f_white_modified(r_s, R, sigma):
     """
-    White-Natário modified shaping function.
-
-    White (2011) showed that thickening the bubble wall (σ_eff = σ/2)
-    reduces the *peak* energy density, though total exotic energy
-    stays similar.  Natário (2002) redistribution is modelled by a
-    small oscillatory wall micro-structure:
-
-        f_WN = f_alc(r_s; σ/2) · [1 + ε·sin(3π r_s / R)]
+    White thick-wall approximation inspired by White (2011).
+    Not the actual Natário (2002) zero-expansion metric.
     """
     sigma_eff = sigma / 2.0
     f_base = f_alcubierre(r_s, R, sigma_eff)
@@ -147,10 +141,8 @@ def rho_from_shaping(r_s, f_vals, v_s, positive=False):
     """
     if positive:
         warnings.warn(
-            "The Lentz positivity is not a simple sign reversal; this is an "
-            "order-of-magnitude estimate based on the ADM Hamiltonian constraint. "
-            "Full treatment requires the Lentz-specific extrinsic curvature invariant (Lentz 2021, §IV).",
-            UserWarning
+            "Lentz positivity is a proxy model, not the actual Lentz soliton geometry.",
+            category=UserWarning
         )
     dfdr = _df_dr(f_vals, r_s)
     coeff = (v_s**2 * c**2) / (96 * np.pi * G)
@@ -286,7 +278,7 @@ def run_metric_comparison(v_s, R, Delta, save_plots=True, include_rodal=True):
 
     # ── Shaping functions ─────────────────────────────────────────
     f_alc = f_alcubierre(r_s, R, sigma)
-    f_wn  = f_white_natario(r_s, R, sigma)
+    f_wn  = f_white_modified(r_s, R, sigma)
     f_len = f_lentz_soliton(r_s, R, sigma)
 
     # ── Energy densities ──────────────────────────────────────────
@@ -322,7 +314,7 @@ def run_metric_comparison(v_s, R, Delta, save_plots=True, include_rodal=True):
     rows = [
         ("Alcubierre 1994",  peak_alc, E_alc, "NEG"),
         ("White-Natário",    peak_wn,  E_wn,  "NEG"),
-        ("Lentz 2021",       peak_len, E_len, "POS"),
+        ("Lentz 2021 (proxy)",       peak_len, E_len, "POS"),
     ]
     for name, peak, E_tot, sign in rows:
         print(f"  {name:<20} {peak:>18.3e} {E_tot:>18.3e} {sign:>8}")

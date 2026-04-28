@@ -50,9 +50,12 @@ An open-source quantum-inequality audit of Alcubierre, White-Natário, and Lentz
 |---|---|---|
 | **Alcubierre (1994)** | Negative (exotic) | Exceeds QI by ~68–69 orders of magnitude |
 | **White-Natário** | Negative (exotic) | Peak reduced 70%, total comparable to Alcubierre |
-| **Lentz (2021)** | Positive | ~420 Earth masses at 1.1c; collapses to noise at useful speeds |
-| Rodal (2025) | Predominantly positive, net ≈ 0 | Peak deficit reduced ~38× vs. Alcubierre; global Type I; QI exceeded by ~10⁶³ |
-| Fuchs (2024) | Positive only (shell) | Zero negative energy – passes QI audit trivially. Requires ~1.8 M ☉ of positive‑energy shell. Subluminal only. |
+| **Lentz (2021)** (proxy model) | Positive | ~420 Earth masses at 1.1c; collapses to noise at useful speeds |
+| Rodal (2025)† | Predominantly positive, net ≈ 0 | Peak deficit reduced ~38× vs. Alcubierre; global Type I; QI exceeded by ~10⁶³ |
+| Fuchs (2024)\* | Positive only (shell) | Zero negative energy – passes QI audit trivially. Requires ~1.8 M ☉ of positive‑energy shell. Subluminal only. |
+
+\* Fuchs is subluminal; QI gap is trivial because no negative energy is present. Requires ~1.8 M☉ of positive-energy shell.
+† Rodal QI gap computed using the actual diffuse negative-energy volume V₋, unlike other metrics which use a thin-shell approximation.
 
 **Bottom line:** No known warp metric is physically feasible within current physics. This repository makes the math explicit and reproducible.
 
@@ -101,7 +104,7 @@ python warpax_qi_audit.py       # single‑point audit
 ### Run tests
 
 ```bash
-pytest test_physics.py
+pytest tests/
 ```
 
 ### Caveats and Scope

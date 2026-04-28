@@ -38,16 +38,9 @@ def calculate_bounds(R, Delta, v_s, m_ship_spec):
     l_photon = HBAR * C / E_QI_allowed   # m
     print(f"Characteristic photon wavelength = {l_photon:.3e} m")
     
-    # This is an illustrative scaling, not a physical result
-    ref_mass = m_ship_spec / 1e20
-    
-    l_fermi = (HBAR**3 / (ref_mass**3 * C))**(1/4)  # Fermi momentum wavelength
-    print(f"Atomic Fermi wavelength ≈ {l_fermi:.3e} m")
-    
-    m_vac_particles = int(np.ceil(M_vac / ref_mass))
-    print(f"Negative mass particles needed: {m_vac_particles} (approx)")
+
     # Dimensional estimate of energy
-    E_req_total = -(C**4 / (2*G)) * (v_s / C) * (R**2 / Delta)   # J
+    E_req_total = (C**2 * v_s * R**2) / (4 * G * Delta)  # Pfenning & Ford (1997), eq. 20
     print("\n[NOTE] E_req_total is a dimensional order-of-magnitude estimate from Alcubierre's original paper,")
     print("       not a precision numerical ADM result.")
     print(f"Required total negative energy ≈ {E_req_total:.3e} J")
@@ -58,7 +51,6 @@ def calculate_bounds(R, Delta, v_s, m_ship_spec):
     tau_match = (3 * HBAR / (32 * np.pi**2 * C**3 * np.abs(rho_req)))**(1/4)
     m_vac_match = np.abs(E_req_total) / C**2
     m_vac_frac_match = m_vac_match / m_ship_spec
-    m_vac_particles_match = int(np.ceil(m_vac_match / ref_mass))
     Delta_hypothetical = tau_match * C   # m
 
     print(f"\n╔══════════════════════════════════════════════════════════╗")
@@ -70,7 +62,6 @@ def calculate_bounds(R, Delta, v_s, m_ship_spec):
     print(f"    Δ_hypothetical ≈ {Delta_hypothetical:.3e} m")
     print(f"    |E|_required   ≈ {np.abs(E_req_total):.3e} J")
     print(f"    m_vac          ≈ {m_vac_match:.3e} kg")
-    print(f"    N_particles    ≈ {m_vac_particles_match:,}")
     print(f"    m_vac / m_ship = {m_vac_frac_match:.3e}")
     print(f"")
     print(f"  ⚠  Δ ≈ {Delta_hypothetical:.0e} m is ~1000× smaller than a proton.")
@@ -96,8 +87,6 @@ def plot_energy_vs_thickness(R, m_ship_spec, m_shield_kg):
     E_allowed_range = np.abs(rho_QI_range)*V_shell_range
     M_vac_range = E_allowed_range/C**2
     m_vac_frac_range = M_vac_range/m_ship_spec
-    ref_mass = m_ship_spec / 1e20
-    m_vac_particles_range = (m_shield_kg/ref_mass) * np.ones_like(m_vac_frac_range)
     fig, axes = plt.subplots(3, 2, figsize=(10, 14))
     axes = axes.flatten()
 
@@ -123,9 +112,7 @@ def plot_energy_vs_thickness(R, m_ship_spec, m_shield_kg):
     axes[4].axhline(1e-6, color='gray', ls=':', alpha=0.5, label='1 ppm')
     axes[4].legend(loc='best')
 
-    axes[5].semilogy(Delta_range*1e3, m_vac_particles_range, color='brown')
-    axes[5].set(xlabel='Wall thickness Δ [mm]', ylabel='Particles |N_vac|', title='Negative particles needed')
-    axes[5].grid(True, which='both', alpha=0.3)
+    fig.delaxes(axes[5])
 
     plt.tight_layout()
     plt.savefig('qi_vs_Delta.png', dpi=200)
@@ -138,8 +125,6 @@ def plot_energy_vs_radius(Delta, rho_QI, m_ship_spec, m_shield_kg, E_req_total):
     E_allowed_R = np.abs(rho_QI)*V_shell_R
     M_vac_R = E_allowed_R/C**2
     m_vac_frac_R = M_vac_R/m_ship_spec
-    ref_mass = m_ship_spec / 1e20
-    m_vac_particles_R = (m_shield_kg/ref_mass) * np.ones_like(m_vac_frac_R)
     fig, axes = plt.subplots(3, 2, figsize=(10, 14))
     axes = axes.flatten()
 
@@ -165,9 +150,7 @@ def plot_energy_vs_radius(Delta, rho_QI, m_ship_spec, m_shield_kg, E_req_total):
     axes[4].axhline(1e-6, color='gray', ls=':', alpha=0.5, label='1 ppm')
     axes[4].legend(loc='best')
 
-    axes[5].semilogy(R_range, m_vac_particles_R, color='brown')
-    axes[5].set(xlabel='Radius R [m]', ylabel='Particles |N_vac|', title='Negative particles needed')
-    axes[5].grid(True, which='both', alpha=0.3)
+    fig.delaxes(axes[5])
 
     plt.tight_layout()
     plt.savefig('qi_vs_Radius.png', dpi=200)
