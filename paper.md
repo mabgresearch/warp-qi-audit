@@ -8,7 +8,7 @@ tags:
   - numerical relativity
 authors:
   - name: Mauricio Alejandro Bravo González
-    orcid: '0000-0000-0000-0000'
+    orcid: '0009-0002-1478-3627'
     affiliation: 1
 affiliations:
   - name: Independent researcher
