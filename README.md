@@ -1,4 +1,4 @@
-# Space Propulsion Physics Simulations
+# Warp Drive QI Audit & Toroidal PIC Simulation
 
 This repository houses two distinct, high-performance physics simulations related to advanced propulsion concepts:
 1. **Toroidal PIC Simulation**: A Particle-in-Cell simulation of Xe⁺ ions in a toroidal magnetic field.
