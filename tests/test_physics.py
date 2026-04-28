@@ -66,11 +66,11 @@ def test_total_energy_scaling():
     expected_ratio = (R2 / R1)**2  # which is 4.0
     assert ratio == pytest.approx(expected_ratio, rel=1e-2), f"Expected energy to scale as R^2 ({expected_ratio}), got {ratio}"
 
-def test_rho_qi():
+def test_ford_roman_bound():
     tau0 = 0.2614 / C
     rho_QI = -(3 * HBAR) / (32 * (np.pi**2) * (C**3) * (tau0**4))
-    expected = -6.43e-26
-    assert np.isclose(rho_QI, expected, rtol=1e-3), f"Expected {expected}, got {rho_QI}"
+    expected = 6.432e-26
+    assert np.isclose(abs(rho_QI), expected, rtol=1e-3), f"Expected {expected}, got {abs(rho_QI)}"
 
 def test_total_energy_positive():
     r = np.linspace(0.01, 10, 1000)

@@ -11,8 +11,6 @@ CONFIG = dict(
     m_ship_spec = 100000
 )
 
-# Physical constants (CODATA 2018 or similar)
-ME     = 9.1093837015e-31  # kg  (electron mass)
 
 def calculate_bounds(R, Delta, v_s, m_ship_spec):
     # Sampling time scale for QI (the "measurement window")
@@ -40,12 +38,14 @@ def calculate_bounds(R, Delta, v_s, m_ship_spec):
     l_photon = HBAR * C / E_QI_allowed   # m
     print(f"Characteristic photon wavelength = {l_photon:.3e} m")
     
-    l_fermi = (HBAR**3 / (ME**3 * C))**(1/4)  # Fermi momentum wavelength
+    # This is an illustrative scaling, not a physical result
+    ref_mass = m_ship_spec / 1e20
+    
+    l_fermi = (HBAR**3 / (ref_mass**3 * C))**(1/4)  # Fermi momentum wavelength
     print(f"Atomic Fermi wavelength ≈ {l_fermi:.3e} m")
     
-    m_vac_particles = int(np.ceil(M_vac / ME))
+    m_vac_particles = int(np.ceil(M_vac / ref_mass))
     print(f"Negative mass particles needed: {m_vac_particles} (approx)")
-
     # Dimensional estimate of energy
     E_req_total = -(C**4 / (2*G)) * (v_s / C) * (R**2 / Delta)   # J
     print("\n[NOTE] E_req_total is a dimensional order-of-magnitude estimate from Alcubierre's original paper,")
@@ -58,7 +58,7 @@ def calculate_bounds(R, Delta, v_s, m_ship_spec):
     tau_match = (3 * HBAR / (32 * np.pi**2 * C**3 * np.abs(rho_req)))**(1/4)
     m_vac_match = np.abs(E_req_total) / C**2
     m_vac_frac_match = m_vac_match / m_ship_spec
-    m_vac_particles_match = int(np.ceil(m_vac_match / ME))
+    m_vac_particles_match = int(np.ceil(m_vac_match / ref_mass))
     Delta_hypothetical = tau_match * C   # m
 
     print(f"\n╔══════════════════════════════════════════════════════════╗")
@@ -96,8 +96,8 @@ def plot_energy_vs_thickness(R, m_ship_spec, m_shield_kg):
     E_allowed_range = np.abs(rho_QI_range)*V_shell_range
     M_vac_range = E_allowed_range/C**2
     m_vac_frac_range = M_vac_range/m_ship_spec
-    m_vac_particles_range = (m_shield_kg/ME) * np.ones_like(m_vac_frac_range)
-
+    ref_mass = m_ship_spec / 1e20
+    m_vac_particles_range = (m_shield_kg/ref_mass) * np.ones_like(m_vac_frac_range)
     fig, axes = plt.subplots(3, 2, figsize=(10, 14))
     axes = axes.flatten()
 
@@ -138,8 +138,8 @@ def plot_energy_vs_radius(Delta, rho_QI, m_ship_spec, m_shield_kg, E_req_total):
     E_allowed_R = np.abs(rho_QI)*V_shell_R
     M_vac_R = E_allowed_R/C**2
     m_vac_frac_R = M_vac_R/m_ship_spec
-    m_vac_particles_R = (m_shield_kg/ME) * np.ones_like(m_vac_frac_R)
-
+    ref_mass = m_ship_spec / 1e20
+    m_vac_particles_R = (m_shield_kg/ref_mass) * np.ones_like(m_vac_frac_R)
     fig, axes = plt.subplots(3, 2, figsize=(10, 14))
     axes = axes.flatten()
 
@@ -191,22 +191,20 @@ def plot_qi_vs_radius_ship(Delta, rho_QI, m_ship_spec, E_req_total):
     print('Saved qi_vs_Radius_with_SHIP.png')
     plt.close()
 
-def plot_phase_space_ship_vs_qi(Delta, R, rho_QI, m_ship_spec):
+def plot_energy_vs_velocity(Delta, m_ship_spec):
     v_s_range = np.linspace(0.1*C, 10*C, 100)
-    E_QI_allowed = np.abs(rho_QI) * 4 * np.pi * R**2 * Delta
-    E_req_vals = (C**4 / (2*G)) * (v_s_range / C) * (R**2 / Delta)
-
-    fig2, ax = plt.subplots(1, 1, figsize=(8, 6))
-    ax.loglog(v_s_range / C, np.ones_like(v_s_range) * E_QI_allowed, color='red', label='QI-allowed total |E| (constant)')
-    ax.loglog(v_s_range / C, E_req_vals, '--', color='blue', label='Warp required total |E|')
-    ax.set(xlabel='Ship speed v_s [c]', ylabel='Total Energy Magnitude |E| [J]', title='QI vs Warp Requirement across Speeds')
-    ax.text(0.5, 0.05, "Note: Proper propulsion comparison requires specific ship model.", 
-            transform=ax.transAxes, ha='center', va='bottom', fontsize=9, bbox=dict(facecolor='white', alpha=0.8))
+    fig, ax = plt.subplots(1, 1, figsize=(8, 6))
+    
+    for R_val in [1.0, 3.0, 10.0]:
+        E_req_vals = (C**4 / (2*G)) * (v_s_range / C) * (R_val**2 / Delta)
+        ax.loglog(v_s_range / C, E_req_vals, label=f'R = {R_val} m')
+        
+    ax.set(xlabel='Ship speed v_s [c]', ylabel='Total Energy Magnitude |E_req| [J]', title='Required Energy vs Velocity')
     ax.legend()
     ax.grid(True, which='both', alpha=0.3)
     plt.tight_layout()
-    plt.savefig('phase_space_ship_vs_qi.png', dpi=200)
-    print('Saved phase_space_ship_vs_qi.png')
+    plt.savefig('energy_vs_velocity.png', dpi=200)
+    print('Saved energy_vs_velocity.png')
     plt.close()
 
 def main():
@@ -227,7 +225,7 @@ def main():
     plot_energy_vs_thickness(R, m_ship_spec, m_shield_kg)
     plot_energy_vs_radius(Delta, rho_QI, m_ship_spec, m_shield_kg, E_req_total)
     plot_qi_vs_radius_ship(Delta, rho_QI, m_ship_spec, E_req_total)
-    plot_phase_space_ship_vs_qi(Delta, R, rho_QI, m_ship_spec)
+    plot_energy_vs_velocity(Delta, m_ship_spec)
 
     # Metric Explorer
     print("\n═══════════════════════════════════════════════════════════════════")
