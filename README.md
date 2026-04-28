@@ -1,10 +1,17 @@
-# Toroidal PIC Simulation — README
+# Warp Drive QI Audit & Toroidal PIC Simulation
 
-## Overview
+This repository houses two distinct, high-performance physics simulations related to advanced propulsion concepts:
+1. **Toroidal PIC Simulation**: A Particle-in-Cell simulation of Xe⁺ ions in a toroidal magnetic field.
+2. **Warp Drive QI Audit**: A numerical evaluation of the physical feasibility of Alcubierre, White-Natário, Lentz, **Rodal (2025)**, and **Fuchs (2024)** warp metrics.
 
-`toroidal_pic.py` is a self-contained, production-ready Particle-in-Cell (PIC)
-simulation of **100,000 Xe⁺ ions** confined in a **toroidal magnetic field**
-(2.6 T peak, major radius 3 m, minor radius 0.5 m).
+---
+
+## 1. Toroidal PIC Simulation
+
+> [!WARNING]
+> **EXPERIMENTAL — not yet peer-validated, use results with caution.** This simulation code is currently unvalidated and should not be treated with the same confidence as the Zenodo-cited QI Audit below.
+
+`toroidal_pic.py` is a self-contained, experimental Particle-in-Cell (PIC) simulation of **100,000 Xe⁺ ions** confined in a **toroidal magnetic field** (2.6 T peak, major radius 3 m, minor radius 0.5 m).
 
 ### Physics modelled
 
@@ -23,61 +30,103 @@ simulation of **100,000 Xe⁺ ions** confined in a **toroidal magnetic field**
 - Cyclotron resonance peak (FFT of total axial current)
 - Density maps (R, Z) saved as PNG every 1 µs
 
-## Dependencies
-
-A `requirements.txt` is provided with pinned versions for scientific reproducibility:
-
-```bash
-pip install -r requirements.txt
-```
-
-If Numba is not installed the code falls back to pure NumPy (much slower).
-
-## Execution
+### Execution
 
 ```bash
 python toroidal_pic.py
 ```
 
-All configuration lives in the `CFG` dictionary at the top of the script.
-Key parameters:
+All configuration lives in the `CFG` dictionary at the top of the script. Key parameters include `N_particles`, `B0`, `t_end`, `dt`, `NR x NZ`, and `macro_weight`. All output goes to the `pic_output/` directory (e.g. `particles_final.npz`, `energy_vs_time.png`, `cyclotron_fft.png`, `density_NNNNNN.png`).
 
-| Parameter | Default | Description |
+---
+
+## 2. Warp Drive QI Audit
+
+An open-source quantum-inequality audit of Alcubierre, White-Natário, and Lentz warp metrics evaluating their physical feasibility using the **Ford-Roman Quantum Inequality (QI)** bound and the **ADM Hamiltonian constraint** for extrinsic curvature.
+
+### Key Results
+
+| Metric | Energy type | Key result |
 |---|---|---|
-| `N_particles` | 100 000 | Number of Xe⁺ macro-particles |
-| `B0` | 2.6 T | Peak toroidal field |
-| `t_end` | 0.1 ms | Total simulation time |
-| `dt` | 0.2 µs | Timestep (ωc·dt ≈ 0.38) |
-| `NR × NZ` | 128 × 64 | Poisson grid resolution |
-| `macro_weight` | 1.0 | Scale factor for particle charge |
+| **Alcubierre (1994)** | Negative (exotic) | Exceeds QI by ~68–69 orders of magnitude |
+| **White-Natário** | Negative (exotic) | Peak reduced 70%, total comparable to Alcubierre |
+| **Lentz (2021)** | Positive | ~420 Earth masses at 1.1c; collapses to noise at useful speeds |
+| Rodal (2025) | Predominantly positive, net ≈ 0 | Peak deficit reduced ~38× vs. Alcubierre; global Type I; QI exceeded by ~10⁶³ |
+| Fuchs (2024) | Positive only (shell) | Zero negative energy – passes QI audit trivially. Requires ~1.8 M ☉ of positive‑energy shell. Subluminal only. |
 
-## Output
+**Bottom line:** No known warp metric is physically feasible within current physics. This repository makes the math explicit and reproducible.
 
-All output goes to the `pic_output/` directory:
+The Rodal (2025) irrotational warp drive [arXiv:2512.18008] is the first fully explicit, continuous, analytically derived solution with vanishing spatial vorticity. Our implementation reproduces its published canonical results. Despite classical improvements, the QI bound is still exceeded by a factor ~10⁶³.
 
-| File | Contents |
-|---|---|
-| `particles_final.npz` | Final (x,y,z,vx,vy,vz,alive) arrays |
-| `energy_vs_time.png` | Total kinetic energy evolution |
-| `cyclotron_fft.png` | FFT of total Z-current (resonance peak) |
-| `density_NNNNNN.png` | R-Z density snapshot at each diagnostic step |
+The Fuchs (2024) constant‑velocity subluminal warp drive [Class. Quantum Grav. 41 (2024) 095013] is the only known metric that completely avoids negative energy, satisfying all classical energy conditions. Our independent audit (powered by warpax) confirms this across the full subluminal parameter space.
 
-## Approximate runtime
+### Usage
 
-| Hardware | Numba | Estimated wall time |
-|---|---|---|
-| Modern laptop (8-core) | Yes | 2–5 minutes |
-| Modern laptop | No (pure NumPy) | 30–60 minutes |
-| GPU (CuPy path) | N/A | Not yet implemented |
+Run the full QI audit with the new command-line interface:
 
-The Boris pusher loop (the bottleneck) is parallelised via `numba.prange`.
+```bash
+python testfisico.py --delta 0.2614 --radius 3.0 --velocity_c 1.1 --mass_ship 100000
+```
 
-## Key physics notes
+This produces:
+- Console output: QI bound, gap analysis, hypothetical Δ, subluminal comparison
+- `qi_vs_Delta.png` — QI energy vs wall thickness
+- `qi_vs_Radius.png` — QI energy vs bubble radius
+- `qi_vs_Radius_with_SHIP.png` — QI limit vs ship requirement
+- `metric_comparison.png` — Four-panel metric comparison
+- `rodal_energy_map.png` — 2‑D polar map of Rodal proper energy density
+- `fuchs_phase_space.png` — Phase‑space sweep of Fuchs metric (v/c vs. r_s)
 
-- **Timestep**: dt = 0.2 µs gives ωc·dt ≈ 0.38 (Xe⁺ cyclotron period ≈ 3.3 µs at 2.6 T). The Boris method is unconditionally stable for uniform B but ωc·dt < 0.5 ensures good orbit accuracy.
-- **Self-field**: At 100k physical particles the Debye length vastly exceeds the device, so the self-consistent E-field is negligible. Increase `macro_weight` (e.g. 10¹⁰) for meaningful self-field effects.
-- **Confinement**: The vertical field Bz prevents vertical particle drift out of the midplane.
+### Run the metric explorer standalone
+
+```python
+from metric_explorer import run_metric_comparison
+
+run_metric_comparison(
+    v_s   = 1.1 * 2.99792458e8,   # 1.1c in m/s
+    R     = 3.0,                   # bubble radius [m]
+    Delta = 0.2614,                # wall thickness [m]
+    include_rodal=True             # enable Rodal metric analysis
+)
+```
+
+### Fuchs/WarpShell audit (requires warpax)
+
+```bash
+python convergence_fuchs.py     # prove E_minus = 0 is converged
+python sweep_fuchs.py           # generate fuchs_phase_space.png
+python warpax_qi_audit.py       # single‑point audit
+```
+
+### Run tests
+
+```bash
+pytest test_physics.py
+```
+
+### Caveats and Scope
+- **Lentz Metric:** The Lentz energy density uses an algebraic ADM estimate. Lentz 2021 required a full Einstein-Maxwell-plasma coupling to get T₀₀ ≥ 0 — you can't reproduce that with the same scalar shift-vector formula just flipping a sign. The ~420 Earth masses figure is indicative at best.
+- **Rodal Metric:** The proper energy density is computed from the spatial Hessian of the scalar potential Φ(r,θ). The QI gap for Rodal uses the actual diffuse negative-energy volume V₋ rather than a thin-shell model, giving a conservative estimate.
+- **Fuchs Metric:** Results obtained via warpax (MIT‑licensed). The audit confirms zero negative energy for the canonical subluminal parameters and all tested combinations in the sweep.
+- **QI Bound:** The QI bound applied here is the Ford-Roman (1995) flat-spacetime result; curved-spacetime corrections exist but do not change the order-of-magnitude gap.
+- **E_req_total:** The total energy requirement is a dimensional order-of-magnitude estimate from Alcubierre's original paper, not a precision numerical ADM result.
+
+---
+
+## Installation & Dependencies
+
+A `requirements.txt` is provided with pinned versions for scientific reproducibility:
+
+```bash
+git clone https://github.com/mabgresearch/warp-qi-audit.git
+cd warp-qi-audit
+pip install -r requirements.txt
+```
+
+*(Note: Numba is optional but strongly recommended for the Toroidal PIC Simulation performance. The code falls back to pure NumPy if Numba is not found).*
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE).
+
+Contributions, issues, and pull requests welcome.
