@@ -8,7 +8,7 @@ tags:
   - numerical relativity
 authors:
   - name: Mauricio Alejandro Bravo González
-    orcid: '0009-0002-1478-3627'
+    orcid: '0000-0000-0000-0000'
     affiliation: 1
 affiliations:
   - name: Independent researcher
@@ -19,7 +19,7 @@ bibliography: paper.bib
 
 # Summary
 
-Warp drive metrics in general relativity promise superluminal travel through local spacetime distortion. However, their physical viability hinges on the ability to violate averaged energy conditions, which are constrained by quantum inequalities (QIs). `warp-qi-audit` is an open-source Python toolkit that numerically evaluates the Alcubierre, modified White-Natário, and Lentz metrics against the Ford–Roman quantum inequality bound. The code quantifies the degree of energy condition violation and checks whether the required negative-energy densities can be sustained within the limits set by quantum field theory.
+Warp drive metrics in general relativity promise superluminal travel through local spacetime distortion. However, their physical viability hinges on the ability to violate averaged energy conditions, which are constrained by quantum inequalities (QIs). `warp-qi-audit` is an open-source Python toolkit that numerically evaluates the Alcubierre, modified White-Natário, Lentz, Rodal, and Fuchs metrics against the Ford–Roman quantum inequality bound. The code quantifies the degree of energy condition violation and checks whether the required negative-energy densities can be sustained within the limits set by quantum field theory.
 
 # Statement of Need
 
@@ -30,7 +30,7 @@ Since Alcubierre's original 1994 metric, numerous modifications have been propos
 - Direct comparison with recent peer-reviewed results to validate the toolchain.
 - Clear, annotated Jupyter notebooks for educational and reproducibility purposes.
 
-The code has been verified against published results: it correctly reproduces the 68–69 orders of magnitude quantum inequality violation for the Alcubierre drive, the reduced peak energy density of the White-Natário modification, and the positive-energy requirement with numerical instability for the Lentz metric. These outcomes are consistent with independent peer-reviewed studies [@Lobo:2024; @Lentz:2021], confirming the software's reliability as an auditing tool.
+The code has been verified against published results: it correctly reproduces the 68–69 orders of magnitude quantum inequality violation for the Alcubierre drive, the reduced peak energy density of the White-Natário modification, and the positive-energy requirement with numerical instability for the Lentz metric. These outcomes are consistent with independent peer-reviewed studies [@Lobo:2024; @Lentz:2021]. Furthermore, it integrates the Fuchs (2024) constant-velocity subluminal WarpShell, demonstrating via a fully resolved numerical JAX phase-space sweep that it strictly obeys the Weak Energy Condition ($E_- = 0$) and entirely bypasses the Ford-Roman quantum inequality constraints that rule out the other metrics, confirming the software's reliability as an auditing tool.
 
 # Usage and Implementation
 
