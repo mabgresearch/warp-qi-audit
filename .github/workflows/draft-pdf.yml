@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: openjournals/draft-paper@v1
+      - uses: openjournals/openjournals-draft-action@v1
         with:
           journal: joss
           paper-path: paper.md
