@@ -1,5 +1,7 @@
 import pytest
 import numpy as np
+import sys, os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from metric_explorer import (
     f_alcubierre,
     f_white_modified,
