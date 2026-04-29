@@ -5,77 +5,116 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from metric_explorer import (
     f_alcubierre,
     f_white_modified,
-    f_lentz_soliton,
     rho_from_shaping,
-    total_energy
+    total_energy,
+    negative_energy_volume,
 )
 from constants import C, G, HBAR
 
+# NOTE: f_lentz_soliton has been removed from metric_explorer.
+# Lentz (2021) requires a full Einstein–Maxwell–plasma coupling and cannot
+# be reproduced by a sign-flip of the Alcubierre ADM formula.
+
+
 def test_shaping_functions():
-    R = 3.0
+    R     = 3.0
     Delta = 0.2614
     sigma = 1.0 / Delta
-    
+
     # Alcubierre: at r_s = R, the function should be exactly the midpoint (approx 0.5)
     f_alc_R = f_alcubierre(R, R, sigma)
-    assert np.isclose(f_alc_R, 0.5, rtol=1e-3), f"Alcubierre shape at r_s=R should be ~0.5, got {f_alc_R}"
-    
+    assert np.isclose(f_alc_R, 0.5, rtol=1e-3), \
+        f"Alcubierre shape at r_s=R should be ~0.5, got {f_alc_R}"
+
     # Inside the bubble (r_s = 0), f ≈ 1
     f_alc_0 = f_alcubierre(0.0, R, sigma)
     assert np.isclose(f_alc_0, 1.0, rtol=1e-3)
-    
+
     # Outside the bubble (r_s = R + 5*Delta), f ≈ 0
     f_alc_out = f_alcubierre(R + 5*Delta, R, sigma)
     assert np.isclose(f_alc_out, 0.0, atol=1e-3)
 
+
 def test_energy_density():
     v_s = 1.1 * C
-    # We test a simple artificial linear shaping function: f(r) = -k*r
+    # Test a simple artificial linear shaping function: f(r) = -k*r
     # so f'(r) = -k.
     # ρ(r) = - (v_s^2 c^2) / (96 pi G) * (-k)^2
     r_vals = np.linspace(1, 2, 100)
-    k = 2.0
+    k      = 2.0
     f_vals = -k * r_vals
-    
-    rho = rho_from_shaping(r_vals, f_vals, v_s, positive=False)
-    
-    expected_rho = - (v_s**2 * C**2) / (96 * np.pi * G) * (k**2)
-    
-    # Check that all values are very close to expected_rho
+
+    rho = rho_from_shaping(r_vals, f_vals, v_s)
+
+    expected_rho = -(v_s**2 * C**2) / (96 * np.pi * G) * (k**2)
+
     assert np.allclose(rho, expected_rho, rtol=1e-3)
 
+
 def test_total_energy_scaling():
-    # If Delta is fixed, Volume ~ R^2, so total energy should scale as R^2 
-    # for a thin shell if density is roughly localized to the shell.
-    v_s = 1.1 * C
+    """Energy should scale as R^2 for a thin shell at fixed Δ."""
+    v_s   = 1.1 * C
     Delta = 0.2614
     sigma = 1.0 / Delta
-    
+
     R1 = 10.0
     R2 = 20.0
-    
+
     r_vals_1 = np.linspace(R1 - 5*Delta, R1 + 5*Delta, 500)
-    f_alc_1 = f_alcubierre(r_vals_1, R1, sigma)
-    rho_1 = rho_from_shaping(r_vals_1, f_alc_1, v_s, positive=False)
-    E1 = total_energy(r_vals_1, rho_1)
-    
+    f_alc_1  = f_alcubierre(r_vals_1, R1, sigma)
+    rho_1    = rho_from_shaping(r_vals_1, f_alc_1, v_s)
+    E1       = total_energy(r_vals_1, rho_1)
+
     r_vals_2 = np.linspace(R2 - 5*Delta, R2 + 5*Delta, 500)
-    f_alc_2 = f_alcubierre(r_vals_2, R2, sigma)
-    rho_2 = rho_from_shaping(r_vals_2, f_alc_2, v_s, positive=False)
-    E2 = total_energy(r_vals_2, rho_2)
-    
-    ratio = E2 / E1
-    expected_ratio = (R2 / R1)**2  # which is 4.0
-    assert ratio == pytest.approx(expected_ratio, rel=1e-2), f"Expected energy to scale as R^2 ({expected_ratio}), got {ratio}"
+    f_alc_2  = f_alcubierre(r_vals_2, R2, sigma)
+    rho_2    = rho_from_shaping(r_vals_2, f_alc_2, v_s)
+    E2       = total_energy(r_vals_2, rho_2)
+
+    ratio          = E2 / E1
+    expected_ratio = (R2 / R1)**2   # = 4.0
+    assert ratio == pytest.approx(expected_ratio, rel=1e-2), \
+        f"Expected energy to scale as R^2 ({expected_ratio}), got {ratio}"
+
 
 def test_ford_roman_bound():
-    tau0 = 0.2614 / C
-    rho_QI = -(3 * HBAR) / (32 * (np.pi**2) * (C**3) * (tau0**4))
+    tau0    = 0.2614 / C
+    rho_QI  = -(3 * HBAR) / (32 * (np.pi**2) * (C**3) * (tau0**4))
     expected = 6.432e-26
-    assert np.isclose(abs(rho_QI), expected, rtol=1e-3), f"Expected {expected}, got {abs(rho_QI)}"
+    assert np.isclose(abs(rho_QI), expected, rtol=1e-3), \
+        f"Expected {expected}, got {abs(rho_QI)}"
+
 
 def test_total_energy_positive():
-    r = np.linspace(0.01, 10, 1000)
+    r   = np.linspace(0.01, 10, 1000)
     rho = np.ones_like(r)
-    E = total_energy(r, rho)
+    E   = total_energy(r, rho)
     assert E > 0, f"Expected positive energy for positive density, got {E}"
+
+
+def test_negative_energy_volume_alcubierre():
+    """V_minus for Alcubierre should be positive and less than total 4πR²Δ shell."""
+    R     = 3.0
+    Delta = 0.2614
+    sigma = 1.0 / Delta
+    v_s   = 1.1 * C
+    r_s   = np.linspace(0.01, 4*R, 3000)
+    f_alc = f_alcubierre(r_s, R, sigma)
+    rho   = rho_from_shaping(r_s, f_alc, v_s)
+    V_m   = negative_energy_volume(r_s, rho)
+    V_ref = 4 * np.pi * R**2 * Delta  # thin-shell reference
+    assert V_m > 0, f"V_minus should be positive, got {V_m}"
+    # V_minus should be in the same ballpark as the thin-shell (within 2 orders of magnitude)
+    assert V_m < 100 * V_ref, f"V_minus={V_m:.3e} is unexpectedly large vs V_shell={V_ref:.3e}"
+    assert V_m > 0.01 * V_ref, f"V_minus={V_m:.3e} is unexpectedly small vs V_shell={V_ref:.3e}"
+
+
+def test_rho_from_shaping_is_non_positive():
+    """Alcubierre energy density should be ≤ 0 everywhere."""
+    R     = 3.0
+    Delta = 0.2614
+    sigma = 1.0 / Delta
+    v_s   = 1.1 * C
+    r_s   = np.linspace(0.01, 4*R, 1000)
+    f_alc = f_alcubierre(r_s, R, sigma)
+    rho   = rho_from_shaping(r_s, f_alc, v_s)
+    assert np.all(rho <= 0.0), "Alcubierre ρ should be non-positive everywhere"

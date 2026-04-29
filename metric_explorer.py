@@ -2,12 +2,16 @@
 metric_explorer.py – Warp Metric Testing Framework
 ====================================================
 
-Computes T_00 (energy density) for three warp-drive metrics via the
+Computes T_00 (energy density) for two superluminal warp-drive metrics via the
 ADM Hamiltonian constraint:
 
   1. Alcubierre (1994) – standard negative-energy bubble
   2. White-Natário     – thick-wall modification (reduced peak ρ)
-  3. Lentz (2021)      – positive-energy soliton attempt
+
+NOTE: The Lentz (2021) metric is NOT included in this audit.
+Lentz requires a full Einstein–Maxwell–plasma coupling to achieve T₀₀ ≥ 0.
+The simple sign-flip of the Alcubierre ADM formula is physically invalid and
+has been removed. See: Lentz 2021 §IV; Bobrick & Martire 2021.
 
 The energy density comes from:
     ρ = c²(K² − K_ij K^ij) / (16πG)
@@ -26,6 +30,8 @@ Usage:
 """
 
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import warnings
 from constants import HBAR, C, G
@@ -37,10 +43,29 @@ except AttributeError:
     _trapz = np.trapz
 
 # ── Physical constants (CODATA 2018) ─────────────────────────────
-c    = C                  # m/s
-G    = G                  # m³/(kg·s²)
-hbar = HBAR               # J·s
+c    = C
+G    = G
+hbar = HBAR
 
+# ── Matplotlib style ──────────────────────────────────────────────
+try:
+    plt.style.use('seaborn-v0_8-whitegrid')
+except OSError:
+    pass  # fallback to default
+
+plt.rcParams.update({
+    'font.size': 13,
+    'axes.titlesize': 14,
+    'axes.labelsize': 13,
+    'axes.linewidth': 1.6,
+    'lines.linewidth': 2.2,
+    'xtick.major.width': 1.4,
+    'ytick.major.width': 1.4,
+    'legend.fontsize': 11,
+    'figure.dpi': 120,
+    'savefig.dpi': 200,
+    'savefig.bbox': 'tight',
+})
 
 # ═════════════════════════════════════════════════════════════════
 #   1.  SHAPING FUNCTIONS  f(r_s)
@@ -68,23 +93,6 @@ def f_white_modified(r_s, R, sigma):
     epsilon = 0.05
     modulation = 1.0 + epsilon * np.sin(3 * np.pi * r_s / R)
     return f_base * modulation
-
-
-def f_lentz_soliton(r_s, R, sigma):
-    """
-    Lentz (2021) positive-energy soliton approximation.
-
-    The soliton shaping function is a dipole-like profile
-    (difference of two sech² peaks) that, together with extra
-    shift-vector constraints, yields T_00 ≥ 0 everywhere.
-
-    Approximate form (Lentz 2021, §IV):
-        f(r_s) = sech²(σ(r_s − R)) − sech²(σ(r_s + R))
-    """
-    # Clip arguments to avoid cosh overflow (sech² → 0 for |arg| > ~700)
-    arg1 = np.clip(sigma * (r_s - R), -500, 500)
-    arg2 = np.clip(sigma * (r_s + R), -500, 500)
-    return np.cosh(arg1)**(-2) - np.cosh(arg2)**(-2)
 
 
 def f_rodal(r_s, R, sigma):
@@ -126,28 +134,21 @@ def _df_dr(f_vals, r_vals):
     return np.gradient(f_vals, r_vals, edge_order=2)
 
 
-def rho_from_shaping(r_s, f_vals, v_s, positive=False):
+def rho_from_shaping(r_s, f_vals, v_s):
     """
     Angle-averaged energy density from a shaping function profile.
 
-    ρ(r_s) = ∓ (v_s² c²) / (96π G) · [f'(r_s)]²
+    ρ(r_s) = −(v_s² c²) / (96π G) · [f'(r_s)]²
 
-    Sign is NEGATIVE for Alcubierre / White-Natário (exotic matter)
-    and POSITIVE for the Lentz soliton.
+    Sign is always NEGATIVE (exotic matter required).
 
-    WARNING: The Lentz positivity is not a simple sign reversal; this is an 
-    order-of-magnitude estimate based on the ADM Hamiltonian constraint. Full 
-    treatment requires the Lentz-specific extrinsic curvature invariant (Lentz 2021, §IV).
+    NOTE: The positive=True branch (Lentz proxy) has been removed.
+    Lentz (2021) requires a full Einstein–Maxwell–plasma coupling that
+    cannot be reproduced by a sign-flip of this scalar formula.
     """
-    if positive:
-        warnings.warn(
-            "Lentz positivity is a proxy model, not the actual Lentz soliton geometry.",
-            category=UserWarning
-        )
     dfdr = _df_dr(f_vals, r_s)
     coeff = (v_s**2 * c**2) / (96 * np.pi * G)
-    sign = +1.0 if positive else -1.0
-    return sign * coeff * dfdr**2
+    return -coeff * dfdr**2
 
 
 def total_energy(r_s, rho_vals):
@@ -155,104 +156,77 @@ def total_energy(r_s, rho_vals):
     return _trapz(rho_vals * 4 * np.pi * r_s**2, r_s)
 
 
+def negative_energy_volume(r_s, rho_vals):
+    """
+    Compute the volume of the region where ρ < 0 for a 1-D radial profile.
+
+    V_minus = ∫_{ρ<0} 4π r² dr
+
+    This replaces the thin-shell approximation V_shell = 4π R² Δ used
+    previously, giving a metric-specific, numerically accurate volume.
+    """
+    mask = rho_vals < 0.0
+    if not np.any(mask):
+        return 0.0
+    integrand = np.where(mask, 4 * np.pi * r_s**2, 0.0)
+    return _trapz(integrand, r_s)
+
+
 def rodal_energy_density(r_vals_1d, theta_vals_1d, v_s, R, sigma):
     """
     Compute Rodal proper energy density on (r, θ) grid.
-    
-    Parameters
-    ----------
-    r_vals_1d : 1D array of radial coordinates [m]
-    theta_vals_1d : 1D array of polar angles [rad]
-    v_s : bubble speed [m/s]
-    R : bubble radius [m]
-    sigma : inverse wall thickness [1/m]
-    
-    Returns
-    -------
-    r_grid, theta_grid : 2D meshgrid arrays
-    rho_p : 2D array of proper energy density [J/m³]
     """
-    # Create meshgrid
     r_grid, th_grid = np.meshgrid(r_vals_1d, theta_vals_1d, indexing='ij')
-    
-    # Compute g(r) and its derivatives on the 1D radial grid
     g_vals = g_rodal(r_vals_1d, R, sigma)
-    dr = r_vals_1d[1] - r_vals_1d[0]  # assume uniform spacing
+    dr = r_vals_1d[1] - r_vals_1d[0]
     g_prime = np.gradient(g_vals, dr, edge_order=2)
     g_double_prime = np.gradient(g_prime, dr, edge_order=2)
-    
-    # Mesh the radial functions to 2D
-    g_2d = g_vals[:, np.newaxis]  # shape (Nr, 1) broadcast
     g_prime_2d = g_prime[:, np.newaxis]
     g_double_prime_2d = g_double_prime[:, np.newaxis]
     r_2d = r_vals_1d[:, np.newaxis]
-    cos_theta = np.cos(theta_vals_1d)[np.newaxis, :]  # shape (1, Nth)
-    
-    # Compute λ_H using the closed-form derived above
+    cos_theta = np.cos(theta_vals_1d)[np.newaxis, :]
     term1 = (g_prime_2d)**2
     term2 = 2 * g_prime_2d * (3*g_prime_2d + r_2d * g_double_prime_2d) * (cos_theta**2)
     lambda_H = (v_s**2) * (term1 - term2)
-    
-    # Proper energy density
     rho_p = -lambda_H * c**2 / (8 * np.pi * G)
-    
     return r_grid, th_grid, rho_p
 
 
 def rodal_global_energy(v_s, R, sigma, r_max_factor=12.0, Nr=500, Nth=200):
     """
-    Compute global positive and negative proper energies.
+    Compute global positive and negative proper energies for Rodal metric.
     Returns dict with E_plus, E_minus, E_net, V_plus, V_minus, etc.
+    V_minus is the actual diffuse negative-energy volume (not thin-shell).
     """
     r_max = r_max_factor * R
-    r_vals = np.linspace(1e-6, r_max, Nr)  # avoid r=0 singularity
+    r_vals = np.linspace(1e-6, r_max, Nr)
     theta_vals = np.linspace(0, np.pi, Nth)
-    
     r_grid, th_grid, rho_p = rodal_energy_density(r_vals, theta_vals, v_s, R, sigma)
-    
-    # Volume element dV = 2π r² sin(θ) dr dθ (axisymmetry)
     dr = r_vals[1] - r_vals[0]
     dth = theta_vals[1] - theta_vals[0]
     dV = 2 * np.pi * r_grid**2 * np.sin(th_grid) * dr * dth
-    
-    # Tolerance for zero
-    tol = 1e-10 * np.max(np.abs(rho_p))  # relative tolerance
+    tol = 1e-10 * np.max(np.abs(rho_p))
     if tol < 1e-20:
         tol = 1e-20
-    
-    # Masks
     mask_pos = rho_p > tol
     mask_neg = rho_p < -tol
     mask_zero = ~(mask_pos | mask_neg)
-    
-    E_plus = np.sum(np.abs(rho_p[mask_pos]) * dV[mask_pos])
+    E_plus  = np.sum(np.abs(rho_p[mask_pos]) * dV[mask_pos])
     E_minus = np.sum(np.abs(rho_p[mask_neg]) * dV[mask_neg])
-    E_net = E_plus - E_minus  # or integrated rho_p directly
-    E_abs = E_plus + E_minus
-    
-    V_plus = np.sum(dV[mask_pos])
+    E_net   = E_plus - E_minus
+    E_abs   = E_plus + E_minus
+    V_plus  = np.sum(dV[mask_pos])
     V_minus = np.sum(dV[mask_neg])
-    V_zero = np.sum(dV[mask_zero])
-    
+    V_zero  = np.sum(dV[mask_zero])
     peak_pos = np.max(rho_p)
     peak_neg = np.min(rho_p)
-    
     return {
-        'E_plus': E_plus,
-        'E_minus': E_minus,
-        'E_net': E_net,
-        'E_abs': E_abs,
-        'V_plus': V_plus,
-        'V_minus': V_minus,
-        'V_zero': V_zero,
-        'peak_rho_pos': peak_pos,
-        'peak_rho_neg': peak_neg,
+        'E_plus': E_plus, 'E_minus': E_minus, 'E_net': E_net, 'E_abs': E_abs,
+        'V_plus': V_plus, 'V_minus': V_minus, 'V_zero': V_zero,
+        'peak_rho_pos': peak_pos, 'peak_rho_neg': peak_neg,
         'ratio_E_plus_minus': E_plus / E_minus if E_minus != 0 else float('inf'),
         'ratio_net_to_abs': abs(E_net) / E_abs if E_abs != 0 else 0.0,
-        'r_grid': r_grid,
-        'th_grid': th_grid,
-        'rho_p': rho_p,
-        'dV': dV
+        'r_grid': r_grid, 'th_grid': th_grid, 'rho_p': rho_p, 'dV': dV,
     }
 
 
@@ -262,14 +236,18 @@ def rodal_global_energy(v_s, R, sigma, r_max_factor=12.0, Nr=500, Nth=200):
 
 def run_metric_comparison(v_s, R, Delta, save_plots=True, include_rodal=True):
     """
-    Compute and compare energy densities for all three metrics.
+    Compute and compare energy densities for Alcubierre and White-Natário.
+
+    NOTE: Lentz (2021) is excluded. Its positive-energy claim requires a
+    full Einstein–Maxwell–plasma coupling not yet implemented here.
+    See: Lentz 2021 §IV; Bobrick & Martire 2021 for context.
 
     Parameters
     ----------
     v_s   : bubble coordinate speed [m/s]
     R     : bubble radius [m]
     Delta : wall thickness [m]
-    save_plots : if True, save PNG figures
+    save_plots : if True, save PNG and PDF figures
     """
     sigma = 1.0 / Delta
 
@@ -279,22 +257,22 @@ def run_metric_comparison(v_s, R, Delta, save_plots=True, include_rodal=True):
     # ── Shaping functions ─────────────────────────────────────────
     f_alc = f_alcubierre(r_s, R, sigma)
     f_wn  = f_white_modified(r_s, R, sigma)
-    f_len = f_lentz_soliton(r_s, R, sigma)
 
     # ── Energy densities ──────────────────────────────────────────
-    rho_alc = rho_from_shaping(r_s, f_alc, v_s, positive=False)
-    rho_wn  = rho_from_shaping(r_s, f_wn,  v_s, positive=False)
-    rho_len = rho_from_shaping(r_s, f_len, v_s, positive=True)
+    rho_alc = rho_from_shaping(r_s, f_alc, v_s)
+    rho_wn  = rho_from_shaping(r_s, f_wn,  v_s)
 
     # ── Total energies ────────────────────────────────────────────
     E_alc = total_energy(r_s, rho_alc)
     E_wn  = total_energy(r_s, rho_wn)
-    E_len = total_energy(r_s, rho_len)
+
+    # ── Negative-energy volumes (numerical, not thin-shell) ───────
+    V_minus_alc = negative_energy_volume(r_s, rho_alc)
+    V_minus_wn  = negative_energy_volume(r_s, rho_wn)
 
     # ── Peak densities ────────────────────────────────────────────
-    peak_alc = np.min(rho_alc)          # most negative
+    peak_alc = np.min(rho_alc)
     peak_wn  = np.min(rho_wn)
-    peak_len = np.max(rho_len)          # most positive
 
     # ══════════════════════════════════════════════════════════════
     #   PRINT RESULTS
@@ -306,18 +284,22 @@ def run_metric_comparison(v_s, R, Delta, save_plots=True, include_rodal=True):
     print(f"    v_s   = {v_s/c:.2f} c")
     print(f"    R     = {R:.1f} m")
     print(f"    Δ     = {Delta:.4f} m  (σ = {sigma:.1f} m⁻¹)")
+    print(f"\n  NOTE: Lentz (2021) is excluded from this audit.")
+    print(f"        It requires Einstein–Maxwell–plasma coupling not implemented here.")
 
-    hdr = f"  {'Metric':<20} {'Peak ρ [J/m³]':>18} {'E_total [J]':>18} {'Sign':>8}"
-    sep = f"  {'-'*20} {'-'*18} {'-'*18} {'-'*8}"
+    hdr = f"  {'Metric':<20} {'Peak ρ [J/m³]':>18} {'E_total [J]':>18} {'V_minus [m³]':>16}"
+    sep = f"  {'-'*20} {'-'*18} {'-'*18} {'-'*16}"
     print(f"\n{hdr}\n{sep}")
 
     rows = [
-        ("Alcubierre 1994",  peak_alc, E_alc, "NEG"),
-        ("White-Natário",    peak_wn,  E_wn,  "NEG"),
-        ("Lentz 2021 (proxy)",       peak_len, E_len, "POS"),
+        ("Alcubierre 1994", peak_alc, E_alc, V_minus_alc),
+        ("White-Natário",   peak_wn,  E_wn,  V_minus_wn),
     ]
-    for name, peak, E_tot, sign in rows:
-        print(f"  {name:<20} {peak:>18.3e} {E_tot:>18.3e} {sign:>8}")
+    for name, peak, E_tot, V_m in rows:
+        print(f"  {name:<20} {peak:>18.3e} {E_tot:>18.3e} {V_m:>16.3e}")
+
+    print(f"\n  NOTE: V_minus is the numerically integrated volume where ρ < 0,")
+    print(f"        not a thin-shell approximation 4πR²Δ.")
 
     if include_rodal:
         print(f"\n  -- Rodal (2025) Irrotational --")
@@ -327,144 +309,131 @@ def run_metric_comparison(v_s, R, Delta, save_plots=True, include_rodal=True):
         print(f"  Total E_+            : {rodal_res['E_plus']:>18.3e}      POS")
         print(f"  Total E_-            : {rodal_res['E_minus']:>18.3e}      NEG")
         print(f"  Net Proper Energy    : {rodal_res['E_net']:>18.3e}    ~ZERO")
+        print(f"  V_minus (diffuse)    : {rodal_res['V_minus']:>18.3e}      m³")
 
     print(f"\n  -- Fuchs (2024) Constant-Velocity Subluminal --")
     print(f"  (Pre-computed canonical result via warpax JAX audit)")
     print(f"  Total E_-            :          0.000e+00      ZERO")
     print(f"  Total E_+            :              > 0.0       POS")
     print(f"  QI gap factor        :       N/A (Bypassed)        ")
+
     # ── QI gap cross-reference (Ford–Roman bound) ─────────────────
-    tau0_qi  = Delta / c
-    rho_qi   = -(3 * hbar) / (32 * np.pi**2 * c**3 * tau0_qi**4)
-    V_shell  = 4 * np.pi * R**2 * Delta
-    E_qi_cap = abs(rho_qi) * V_shell
-    qi_gap   = abs(E_alc) / E_qi_cap if E_qi_cap != 0 else float('inf')
+    # All metrics now use numerically computed V_minus instead of thin-shell
+    tau0_qi   = Delta / c
+    rho_qi    = -(3 * hbar) / (32 * np.pi**2 * c**3 * tau0_qi**4)
 
-    print(f"\n  QI Cap (Ford-Roman, τ₀=Δ/c) : {E_qi_cap:.3e} J")
-    print(f"  Alcubierre negative total    : {abs(E_alc):.3e} J")
-    print(f"  QI gap factor                : {qi_gap:.1e}")
+    E_qi_alc  = abs(rho_qi) * V_minus_alc
+    E_qi_wn   = abs(rho_qi) * V_minus_wn
+    qi_gap_alc = abs(E_alc) / E_qi_alc  if E_qi_alc  != 0 else float('inf')
+    qi_gap_wn  = abs(E_wn)  / E_qi_wn   if E_qi_wn   != 0 else float('inf')
 
-    # White-Natário reduction
+    print(f"\n  QI Gap Table (Ford-Roman, τ₀=Δ/c, using actual V_minus):")
+    print(f"  {'Metric':<20} {'|E_neg| [J]':>16} {'E_QI_cap [J]':>16} {'Gap factor':>14}")
+    print(f"  {'-'*20} {'-'*16} {'-'*16} {'-'*14}")
+    print(f"  {'Alcubierre 1994':<20} {abs(E_alc):>16.3e} {E_qi_alc:>16.3e} {qi_gap_alc:>14.2e}")
+    print(f"  {'White-Natário':<20} {abs(E_wn):>16.3e}  {E_qi_wn:>16.3e} {qi_gap_wn:>14.2e}")
+    print(f"\n  NOTE: All metrics now use the actual negative-energy volume V_minus.")
+    print(f"        Rodal uses its diffuse 3-D V_minus (computed above).")
+
+    if include_rodal:
+        V_m_rod = rodal_res['V_minus']
+        E_qi_rod = abs(rho_qi) * V_m_rod
+        qi_gap_rod = abs(rodal_res['E_minus']) / E_qi_rod if E_qi_rod != 0 else float('inf')
+        print(f"  {'Rodal 2025':<20} {rodal_res['E_minus']:>16.3e} {E_qi_rod:>16.3e} {qi_gap_rod:>14.2e}")
+
     if peak_alc != 0:
         red = abs(peak_wn / peak_alc)
         print(f"\n  White-Natário / Alcubierre peak: {red:.2f}×")
         print(f"  → Thicker wall reduces peak by {(1-red)*100:.0f}%,")
         print(f"    but total negative energy remains comparable.")
 
-    # Lentz feasibility
-    E_sun_mass = 1.787e47   # M_sun · c²  [J]
-    M_earth_kg = 5.972e24   # kg
-    E_earth    = M_earth_kg * c**2
-    E_sun_yr   = 3.828e26 * 365.25 * 86400   # L_sun × 1 year [J]
-
-    lentz_solar  = abs(E_len) / E_sun_mass
-    lentz_earth  = abs(E_len) / E_earth
-    lentz_sunyr  = abs(E_len) / E_sun_yr
-
-    print(f"\n  Lentz soliton energy         : {E_len:.3e} J")
-    print(f"  Solar mass-energy            : {E_sun_mass:.3e} J")
-    print(f"  Lentz in solar masses        : {lentz_solar:.4f} M_☉")
-    print(f"  Equivalent Earth masses      : {lentz_earth:.0f} M_⊕")
-    print(f"  Sun luminous output (1 yr)   : {E_sun_yr:.3e} J")
-    print(f"  Lentz / solar annual output  : {lentz_sunyr:.1e}  ({lentz_sunyr/1e9:.1f} billion Sun-years)")
-
     print(f"\n  CONCLUSION:")
-    print(f"  • Alcubierre & White-Natário require NEGATIVE energy")
-    print(f"    (violates all known energy conditions).")
-    print(f"    The QI (Ford-Roman) bound is exceeded by ~{np.log10(qi_gap):.0f} orders")
-    print(f"    of magnitude — not a marginal shortfall but a")
-    print(f"    fundamental prohibition.")
-    print(f"  • Lentz avoids negative energy but demands enormous")
-    print(f"    POSITIVE energy ({lentz_solar:.4f} M_☉ ≈ {lentz_earth:.0f} Earth masses).")
-    print(f"  • No known metric closes the feasibility gap within")
-    print(f"    current physics.")
-    print(f"")
-    print(f"  (*) Lentz peak ρ from algebraic estimate of the ADM")
-    print(f"      extrinsic-curvature invariant, not a full numerical")
-    print(f"      integration of the Lentz stress-energy tensor.")
-    print(f"      Lentz 2021 required a full Einstein-Maxwell-plasma coupling")
-    print(f"      to get T₀₀ ≥ 0 — you can't reproduce that with the same scalar")
-    print(f"      shift-vector formula just flipping a sign. The ~{lentz_earth:.0f} Earth masses")
-    print(f"      figure is indicative at best.")
+    print(f"  • None of the audited superluminal warp metrics satisfy the")
+    print(f"    Ford–Roman quantum inequality bound.")
+    print(f"  • Alcubierre & White-Natário require NEGATIVE energy violating")
+    print(f"    all known energy conditions; QI exceeded by ~{np.log10(qi_gap_alc):.0f} orders.")
+    print(f"  • Lentz (2021) is NOT evaluated here: it requires a full")
+    print(f"    Einstein–Maxwell–plasma coupling beyond this tool's current scope.")
+    print(f"  • The Bobrick–Martire class and other solutions have not yet")
+    print(f"    been audited by this tool.")
     print(f"{'='*65}")
+
+    if not save_plots:
+        return E_alc
 
     # ══════════════════════════════════════════════════════════════
     #   PLOTS
     # ══════════════════════════════════════════════════════════════
-    if not save_plots:
-        return
+    # Muted color palette (perceptually uniform)
+    C_ALC = '#C0392B'   # muted red
+    C_WN  = '#2471A3'   # muted blue
 
     fig, axes = plt.subplots(2, 2, figsize=(12, 10))
 
     # (a) Shaping functions
     ax = axes[0, 0]
-    ax.plot(r_s, f_alc, 'r-',  lw=2, label='Alcubierre')
-    ax.plot(r_s, f_wn,  'b--', lw=2, label='White-Natário')
-    ax.plot(r_s, f_len, 'g-.', lw=2, label='Lentz soliton')
-    ax.axvline(R, color='gray', ls=':', alpha=0.5, label=f'R = {R} m')
-    ax.set(xlabel='r_s [m]', ylabel='f(r_s)',
-           title='Shaping functions')
-    ax.legend(fontsize=8)
-    ax.grid(True, alpha=0.3)
+    ax.plot(r_s, f_alc, color=C_ALC, lw=2.2, label='Alcubierre (1994)')
+    ax.plot(r_s, f_wn,  color=C_WN,  lw=2.2, ls='--', label='White-Natário')
+    ax.axvline(R, color='#555', ls=':', lw=1.2, label=f'R = {R} m')
+    ax.set(xlabel='r_s [m]', ylabel='f(r_s)', title='Shaping functions')
+    ax.legend()
+    ax.grid(True, alpha=0.35)
 
     # (b) Energy density profiles
     ax = axes[0, 1]
-    ax.plot(r_s, rho_alc, 'r-',  lw=2, label='Alcubierre')
-    ax.plot(r_s, rho_wn,  'b--', lw=2, label='White-Natário')
-    ax.plot(r_s, rho_len, 'g-.', lw=2, label='Lentz')
-    ax.axhline(0, color='k', lw=0.5)
-    ax.set(xlabel='r_s [m]', ylabel='ρ [J/m³]',
-           title='Energy density profiles')
-    ax.legend(fontsize=8)
-    ax.grid(True, alpha=0.3)
+    ax.plot(r_s, rho_alc, color=C_ALC, lw=2.2, label='Alcubierre (1994)')
+    ax.plot(r_s, rho_wn,  color=C_WN,  lw=2.2, ls='--', label='White-Natário')
+    ax.axhline(0, color='k', lw=0.8)
+    ax.set(xlabel='r_s [m]', ylabel='ρ [J/m³]', title='Energy density profiles')
+    ax.legend()
+    ax.grid(True, alpha=0.35)
 
     # (c) |ρ| log scale
     ax = axes[1, 0]
-    ax.semilogy(r_s, np.abs(rho_alc), 'r-',  lw=2, label='|ρ| Alcubierre')
-    ax.semilogy(r_s, np.abs(rho_wn),  'b--', lw=2, label='|ρ| White-Natário')
-    ax.semilogy(r_s, np.abs(rho_len) + 1e-100, 'g-.', lw=2, label='|ρ| Lentz')
-    ax.set(xlabel='r_s [m]', ylabel='|ρ| [J/m³]',
-           title='Energy density magnitude (log)')
-    ax.legend(fontsize=8)
-    ax.grid(True, which='both', alpha=0.3)
+    ax.semilogy(r_s, np.abs(rho_alc), color=C_ALC, lw=2.2, label='|ρ| Alcubierre')
+    ax.semilogy(r_s, np.abs(rho_wn),  color=C_WN,  lw=2.2, ls='--', label='|ρ| White-Natário')
+    ax.set(xlabel='r_s [m]', ylabel='|ρ| [J/m³]', title='Energy density magnitude (log)')
+    ax.legend()
+    ax.grid(True, which='both', alpha=0.35)
 
     # (d) Cumulative energy E(<r_s)
     ax = axes[1, 1]
     dr = np.gradient(r_s)
     cum_alc = np.cumsum(rho_alc * 4*np.pi*r_s**2 * dr)
     cum_wn  = np.cumsum(rho_wn  * 4*np.pi*r_s**2 * dr)
-    cum_len = np.cumsum(rho_len * 4*np.pi*r_s**2 * dr)
-    ax.plot(r_s, cum_alc, 'r-',  lw=2, label='Alcubierre')
-    ax.plot(r_s, cum_wn,  'b--', lw=2, label='White-Natário')
-    ax.plot(r_s, cum_len, 'g-.', lw=2, label='Lentz')
-    ax.axhline(0, color='k', lw=0.5)
-    ax.set_xlabel('r_s [m]')
-    ax.set_ylabel('E(< r_s) [J]')
-    ax.set_title('Cumulative energy enclosed')
-    ax.legend(fontsize=8)
-    ax.grid(True, alpha=0.3)
+    ax.plot(r_s, cum_alc, color=C_ALC, lw=2.2, label='Alcubierre')
+    ax.plot(r_s, cum_wn,  color=C_WN,  lw=2.2, ls='--', label='White-Natário')
+    ax.axhline(0, color='k', lw=0.8)
+    ax.set(xlabel='r_s [m]', ylabel='E(<r_s) [J]', title='Cumulative energy enclosed')
+    ax.legend()
+    ax.grid(True, alpha=0.35)
 
     plt.suptitle(f'Warp Metric Comparison  (v_s={v_s/c:.1f}c, R={R}m, Δ={Delta}m)',
-                 fontsize=13, fontweight='bold')
+                 fontsize=14, fontweight='bold')
     plt.tight_layout()
     plt.savefig('metric_comparison.png', dpi=200)
-    print('Saved metric_comparison.png')
-    plt.close()
+    plt.savefig('metric_comparison.pdf')
+    print('Saved metric_comparison.png / .pdf')
+    plt.close('all')
 
     if include_rodal and save_plots:
         r_grid, th_grid, rho_p = rodal_res['r_grid'], rodal_res['th_grid'], rodal_res['rho_p']
         fig = plt.figure(figsize=(8, 6))
         ax = fig.add_subplot(111, projection='polar')
-        pcm = ax.pcolormesh(th_grid, r_grid, rho_p, shading='auto', cmap='RdBu_r', 
-                            vmax=rodal_res['peak_rho_pos'], vmin=-rodal_res['peak_rho_pos'])
-        # Overlay rho_p = 0 contour
-        ax.contour(th_grid, r_grid, rho_p, levels=[0], colors='k', linewidths=1)
-        plt.colorbar(pcm, ax=ax, label='Proper Energy Density ρ_p [J/m³]')
+        vmax = np.nanpercentile(np.abs(rho_p), 99)
+        pcm = ax.pcolormesh(th_grid, r_grid, rho_p, shading='auto',
+                            cmap='plasma', vmin=-vmax, vmax=vmax)
+        ax.contour(th_grid, r_grid, rho_p, levels=[0], colors='white', linewidths=1)
+        cbar = plt.colorbar(pcm, ax=ax, label='Proper Energy Density ρ_p [J/m³]',
+                            format='%.2e', shrink=0.75)
         ax.set_title('Rodal (2025) Proper Energy Density Map', pad=20)
         plt.tight_layout()
         plt.savefig('rodal_energy_map.png', dpi=200)
-        print('Saved rodal_energy_map.png')
-        plt.close()
+        plt.savefig('rodal_energy_map.pdf')
+        print('Saved rodal_energy_map.png / .pdf')
+        plt.close('all')
+
+    return E_alc
 
 
 # ═════════════════════════════════════════════════════════════════
@@ -476,18 +445,18 @@ if __name__ == "__main__":
         R     = 3.0,
         Delta = 0.2614,
     )
-    
+
     # Rodal validation
     print("\n" + "="*65)
     print("  RODAL METRIC VALIDATION (canonical parameters)")
     print("="*65)
-    v_s_val = c
-    R_val = 5.0
+    v_s_val   = c
+    R_val     = 5.0
     sigma_val = 4.0
     Delta_val = 1.0 / sigma_val
-    
+
     results = rodal_global_energy(v_s_val, R_val, sigma_val, r_max_factor=12.0, Nr=800, Nth=400)
-    
+
     print(f"  Peak ρ_p (positive)  : {results['peak_rho_pos']:.3e} J/m³")
     print(f"  Peak ρ_p (negative)  : {results['peak_rho_neg']:.3e} J/m³")
     print(f"  Expected max         : +2.23e42 J/m³")
@@ -497,15 +466,13 @@ if __name__ == "__main__":
     print(f"  E_+ / E_-            : {results['ratio_E_plus_minus']:.3f}  (expected ~1.07)")
     print(f"  |E_net|/E_abs        : {results['ratio_net_to_abs']:.4%}  (expected << 1%)")
 
-    # Ford-Roman QI audit for Rodal
-    tau0_qi = Delta_val / c
-    rho_qi = -(3 * hbar) / (32 * np.pi**2 * c**3 * tau0_qi**4)
-    V_minus_rodal = results['V_minus']
-    E_qi_cap = abs(rho_qi) * V_minus_rodal
-    qi_gap = abs(results['E_minus']) / E_qi_cap
-    print(f"\n  QI Cap (Ford-Roman)  : {E_qi_cap:.3e} J")
-    print(f"  Rodal negative E_-   : {abs(results['E_minus']):.3e} J")
-    print(f"  QI gap factor        : {qi_gap:.1e}")
-    print(f"  * Note: The QI cap is computed using the actual diffuse negative-energy volume (V_-)")
-    print(f"    rather than the thin-shell model. Since the QI is a local bound, this result")
-    print(f"    serves as an approximate averaged measure.")
+    # Ford-Roman QI audit for Rodal – using actual V_minus
+    tau0_qi   = Delta_val / c
+    rho_qi    = -(3 * hbar) / (32 * np.pi**2 * c**3 * tau0_qi**4)
+    V_minus_r = results['V_minus']
+    E_qi_cap  = abs(rho_qi) * V_minus_r
+    qi_gap    = abs(results['E_minus']) / E_qi_cap
+    print(f"\n  QI Cap (Ford-Roman, actual V_minus) : {E_qi_cap:.3e} J")
+    print(f"  Rodal negative E_-                  : {abs(results['E_minus']):.3e} J")
+    print(f"  QI gap factor                       : {qi_gap:.1e}")
+    print(f"  * V_minus (diffuse) = {V_minus_r:.3e} m³  (numerically integrated, not thin-shell)")
