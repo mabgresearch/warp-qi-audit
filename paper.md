@@ -50,7 +50,7 @@ The core computation relies on the `metric_explorer.py` module, which defines bu
 
 # Figures
 
-![Quantum inequality violation audit for Alcubierre and White-Natário metrics.](example_figure.png)
+![Quantum inequality violation audit for Alcubierre, modified White-Natário, Rodal, and Fuchs metrics.](example_figure.png)
 
 # Acknowledgements
 
