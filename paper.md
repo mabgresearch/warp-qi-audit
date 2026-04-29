@@ -41,7 +41,7 @@ The code has been verified against published results: it correctly reproduces th
 
 - **Alcubierre (1994)** requires exotic negative energy exceeding the QI bound by ~68–69 orders of magnitude.
 - **White-Natário** reduces the peak density by ~70% but the total negative energy remains comparable to Alcubierre.
-- **Rodal (2026)** [@Rodal:2026] is a global Type-I metric with near-zero net energy, but still violates the QI by ~10⁶³. Note that single-frame Eulerian analysis of the Rodal metric has been shown to underdetect energy condition violations; observer-optimised methods (Fuchs et al., arXiv:2602.18023) reveal additional violations at over 28% of grid points.
+- **Rodal (2026)** [@Rodal2026] is a global Type-I metric with near-zero net energy, but still violates the QI by ~10⁶³. Note that single-frame Eulerian analysis of the Rodal metric has been shown to underdetect energy condition violations; observer-optimised methods (Fuchs et al., arXiv:2602.18023) reveal additional violations at over 28% of grid points.
 - **Fuchs (2024)** avoids all negative energy (subluminal only) and trivially satisfies the QI.
 
 # Usage and Implementation
