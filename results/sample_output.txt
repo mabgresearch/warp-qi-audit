@@ -43,9 +43,9 @@ Required negative energy density ≈ -7.752e+43 J/m³
   Gamma        = 7.09
   p_ship (SR)  = 2.104e+14 kg·m/s
 Saved qi_vs_Radius_with_SHIP.png
-Saved phase_space_ship_vs_qi.png
+Saved energy_vs_velocity.png
 Saved qi_vs_Radius_with_SHIP.png
-Saved phase_space_ship_vs_qi.png
+Saved energy_vs_velocity.png
 
 =================================================================
   WARP METRIC EXPLORER – Comparative Analysis

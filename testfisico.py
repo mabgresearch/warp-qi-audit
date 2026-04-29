@@ -11,25 +11,10 @@ from metric_explorer import (
     negative_energy_volume,
 )
 from constants import HBAR, C, G
+from plot_style import setup_plot_style
 
-# ── Matplotlib style ──────────────────────────────────────────────
-try:
-    plt.style.use('seaborn-v0_8-whitegrid')
-except OSError:
-    pass
-
-plt.rcParams.update({
-    'font.size': 13,
-    'axes.titlesize': 14,
-    'axes.labelsize': 13,
-    'axes.linewidth': 1.6,
-    'lines.linewidth': 2.2,
-    'xtick.major.width': 1.4,
-    'ytick.major.width': 1.4,
-    'legend.fontsize': 11,
-    'savefig.dpi': 200,
-    'savefig.bbox': 'tight',
-})
+# ── Apply shared Matplotlib style (see plot_style.py) ────────────
+setup_plot_style()
 
 CONFIG = dict(
     Delta       = 0.2614,

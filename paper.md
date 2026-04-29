@@ -46,7 +46,7 @@ The code has been verified against published results: it correctly reproduces th
 
 # Usage and Implementation
 
-The core computation relies on the `metric_explorer.py` module, which defines bubble profiles, calculates the relevant stress-energy components, and evaluates the QI bound via numerical integration. All QI volume calculations use the actual negative-energy volume V₋ computed numerically from the energy density profile. Dependencies include NumPy, SciPy, and Matplotlib. The software is version-controlled on GitHub and permanently archived on Zenodo with DOI: 10.5281/zenodo.19862376.
+The core computation relies on the `metric_explorer.py` module, which defines bubble profiles, calculates the relevant stress-energy components, and evaluates the QI bound via numerical integration. All QI volume calculations use the actual negative-energy volume V₋ computed numerically from the energy density profile. The QI sampling time is set to τ₀ = Δ/c, the light-crossing time of the bubble wall, following the standard convention in the warp-drive QI literature (Pfenning & Ford 1997; Lobo & Visser 2004); because the Ford–Roman bound scales as τ₀⁻⁴, varying τ₀ by a factor of two changes the QI cap by only a factor of 16, which is negligible relative to the >60-orders-of-magnitude gaps reported, so the qualitative conclusion is robust to any physically reasonable choice of sampling time. Dependencies include NumPy, SciPy, and Matplotlib. The software is version-controlled on GitHub and permanently archived on Zenodo with DOI: 10.5281/zenodo.19862376.
 
 # Figures
 

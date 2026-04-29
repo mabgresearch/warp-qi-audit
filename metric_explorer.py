@@ -35,6 +35,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import warnings
 from constants import HBAR, C, G
+from plot_style import setup_plot_style
 
 # ── Compatibility: np.trapz was removed in NumPy 2.0 ─────────────
 try:
@@ -47,25 +48,8 @@ c    = C
 G    = G
 hbar = HBAR
 
-# ── Matplotlib style ──────────────────────────────────────────────
-try:
-    plt.style.use('seaborn-v0_8-whitegrid')
-except OSError:
-    pass  # fallback to default
-
-plt.rcParams.update({
-    'font.size': 13,
-    'axes.titlesize': 14,
-    'axes.labelsize': 13,
-    'axes.linewidth': 1.6,
-    'lines.linewidth': 2.2,
-    'xtick.major.width': 1.4,
-    'ytick.major.width': 1.4,
-    'legend.fontsize': 11,
-    'figure.dpi': 120,
-    'savefig.dpi': 200,
-    'savefig.bbox': 'tight',
-})
+# ── Apply shared Matplotlib style (see plot_style.py) ────────────
+setup_plot_style()
 
 # ═════════════════════════════════════════════════════════════════
 #   1.  SHAPING FUNCTIONS  f(r_s)
@@ -231,7 +215,101 @@ def rodal_global_energy(v_s, R, sigma, r_max_factor=12.0, Nr=500, Nth=200):
 
 
 # ═════════════════════════════════════════════════════════════════
-#   3.  COMPARISON DRIVER
+#   3.  CONVERGENCE CHECK
+# ═════════════════════════════════════════════════════════════════
+
+def convergence_check_all_metrics(v_s, R, Delta, include_rodal=True):
+    """
+    Check numerical convergence of the energy integrals for all metrics.
+
+    For Alcubierre and White-Natário (1-D), runs `total_energy()` at four
+    radial grid resolutions: N = 1000, 2000, 4000, 8000 points over [0.01, 4R].
+
+    For Rodal (2-D), runs `rodal_global_energy()` at three (Nr, Nth) pairs:
+    (500, 200), (800, 300), (1200, 450).
+
+    Prints the energy at each resolution and the relative change from the
+    previous level.  Declares convergence if the two finest resolutions agree
+    to better than 0.1 %.
+    """
+    sigma = 1.0 / Delta
+
+    print(f"\n{'='*65}")
+    print(f"  CONVERGENCE CHECK  (v_s={v_s/c:.2f}c, R={R} m, Δ={Delta} m)")
+    print(f"{'='*65}")
+
+    # ── 1-D metrics (Alcubierre, White-Natário) ───────────────────
+    resolutions_1d = [1000, 2000, 4000, 8000]
+    metric_fns = [
+        ("Alcubierre 1994", f_alcubierre),
+        ("White-Natário",   f_white_modified),
+    ]
+
+    for metric_name, shaping_fn in metric_fns:
+        print(f"\n  {metric_name}:")
+        print(f"    {'N pts':>8}  {'E_total [J]':>18}  {'Rel. change':>14}")
+        print(f"    {'-'*8}  {'-'*18}  {'-'*14}")
+        prev_E = None
+        last_two = []
+        for N in resolutions_1d:
+            r_s   = np.linspace(0.01, 4 * R, N)
+            f_vals = shaping_fn(r_s, R, sigma)
+            rho   = rho_from_shaping(r_s, f_vals, v_s)
+            E     = total_energy(r_s, rho)
+            if prev_E is not None and prev_E != 0:
+                rel_change = abs((E - prev_E) / prev_E)
+                print(f"    {N:>8d}  {E:>18.6e}  {rel_change:>13.4%}")
+            else:
+                print(f"    {N:>8d}  {E:>18.6e}  {'(baseline)':>14}")
+            last_two.append(E)
+            if len(last_two) > 2:
+                last_two.pop(0)
+            prev_E = E
+        # Convergence verdict on the two finest resolutions
+        if len(last_two) == 2 and last_two[0] != 0:
+            finest_rel = abs((last_two[1] - last_two[0]) / last_two[0])
+            if finest_rel < 0.001:
+                print(f"    ✓ CONVERGED to better than 0.1 % at N=4000→8000 "
+                      f"(Δrel={finest_rel:.4%})")
+            else:
+                print(f"    ⚠ WARNING: result may NOT be fully converged "
+                      f"(Δrel={finest_rel:.4%} between N=4000 and N=8000)")
+
+    # ── Rodal (2-D) ───────────────────────────────────────────────
+    if include_rodal:
+        print(f"\n  Rodal (2025) – 2-D integration:")
+        print(f"    {'(Nr, Nth)':>12}  {'E_minus [J]':>18}  {'Rel. change':>14}")
+        print(f"    {'-'*12}  {'-'*18}  {'-'*14}")
+        rodal_grids = [(500, 200), (800, 300), (1200, 450)]
+        prev_Em = None
+        last_two_r = []
+        for Nr, Nth in rodal_grids:
+            res  = rodal_global_energy(v_s, R, sigma, Nr=Nr, Nth=Nth)
+            Em   = res['E_minus']
+            lbl  = f"({Nr}, {Nth})"
+            if prev_Em is not None and prev_Em != 0:
+                rel_change = abs((Em - prev_Em) / prev_Em)
+                print(f"    {lbl:>12}  {Em:>18.6e}  {rel_change:>13.4%}")
+            else:
+                print(f"    {lbl:>12}  {Em:>18.6e}  {'(baseline)':>14}")
+            last_two_r.append(Em)
+            if len(last_two_r) > 2:
+                last_two_r.pop(0)
+            prev_Em = Em
+        if len(last_two_r) == 2 and last_two_r[0] != 0:
+            finest_rel = abs((last_two_r[1] - last_two_r[0]) / last_two_r[0])
+            if finest_rel < 0.001:
+                print(f"    ✓ CONVERGED to better than 0.1 % at (800,300)→(1200,450) "
+                      f"(Δrel={finest_rel:.4%})")
+            else:
+                print(f"    ⚠ WARNING: result may NOT be fully converged "
+                      f"(Δrel={finest_rel:.4%} between (800,300) and (1200,450))")
+
+    print(f"{'='*65}")
+
+
+# ═════════════════════════════════════════════════════════════════
+#   4.  COMPARISON DRIVER
 # ═════════════════════════════════════════════════════════════════
 
 def run_metric_comparison(v_s, R, Delta, save_plots=True, include_rodal=True):
@@ -317,8 +395,19 @@ def run_metric_comparison(v_s, R, Delta, save_plots=True, include_rodal=True):
     print(f"  Total E_+            :              > 0.0       POS")
     print(f"  QI gap factor        :       N/A (Bypassed)        ")
 
+    # ── Convergence check ─────────────────────────────────────────
+    convergence_check_all_metrics(v_s, R, Delta, include_rodal=include_rodal)
+
     # ── QI gap cross-reference (Ford–Roman bound) ─────────────────
     # All metrics now use numerically computed V_minus instead of thin-shell
+    #
+    # τ₀ = Δ/c is the light-crossing time of the bubble wall, the standard
+    # choice in the warp-drive QI literature (Pfenning & Ford 1997, Lobo &
+    # Visser 2004). Because the QI bound scales as τ₀⁻⁴, varying τ₀ by a
+    # factor of 2 changes the QI cap by a factor of 16, which is negligible
+    # compared to the >60-order-of-magnitude gaps reported here. The
+    # qualitative conclusion is robust to any physically reasonable sampling
+    # time.
     tau0_qi   = Delta / c
     rho_qi    = -(3 * hbar) / (32 * np.pi**2 * c**3 * tau0_qi**4)
 
